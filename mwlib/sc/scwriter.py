@@ -16,7 +16,6 @@ More Info:
 from __future__ import division
 
 import sys
-import odf
 
 from mwlib.log import Log
 from mwlib import advtree, writerbase, odfconf, parser

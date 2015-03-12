@@ -169,6 +169,36 @@ class TitlePage(PageTemplate):
                 y = max(0, min(page_height-height, pdfstyles.title_page_image_pos[1]))
             canvas.drawImage(self.cover, x, y, width , height)
 
+class WikiFMTemplate:
+    def __init__(self, filename, topMargin=0, leftMargin=0, rightMargin=0, bottomMargin=0):
+        self.filename = filename
+        self.templates = []
+    def addPageTemplates(self, pageTemplate):
+        self.templates.append(pageTemplate)
+    def build(self, flowables, filename=None):
+        # print printable flowables
+        strlist = []
+        for el in flowables:
+            try:
+                strlist.append("%s" % el)
+            except AttributeError:
+                next
+        content = '\n'.join(strlist)
+        content += u'\n'
+        
+        content = basetempl % {'content': content, 'title': 'FIXME Title'}
+        
+        #content = content.encode("utf8")
+        #assert 0
+        pdf, info = texcaller.convert(content, 'LaTeX', 'PDF', 5)
+        
+        if filename:
+            self.filename = filename
+        open(self.filename, 'w').write(pdf)
+        #open(self.filename+'.log', 'w').write(info)
+        open(self.filename+'.tex', 'w').write(content.encode("utf8"))
+        
+    
 from reportlab.platypus.doctemplate import BaseDocTemplate
 from reportlab.pdfgen import canvas
 
