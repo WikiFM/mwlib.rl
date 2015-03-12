@@ -406,6 +406,7 @@ class MarkdownConverter(BaseConverter):
   def on_imagelink(self, node):
     self.append('![%s](%s)' % (
         node.asText(), node.target.replace('Image:', '').replace(' ', '_').replace('File:', '')))
+    print self.item_wiki.getDiskPath(node.target)
 
   def on_articlelink(self, node):
     for i in ['jpg', 'png', 'gif']:
@@ -415,17 +416,9 @@ class MarkdownConverter(BaseConverter):
     else:
       #self.append("[%s](%s/%s)" % (node.target, self.item_wiki.getUrl(, node.target.replace(' ', '_')))
       #print self.item_wiki.getSource(node.target) # TODO check links
-      from mwlib.metabook import make_source
 
       g = self.item_wiki.siteinfo['general']
       target = "http://%s%s" % (g['server'], g['articlepath'].replace('$1', node.target.replace(' ', '_')))
-      #print make_source(
-            #name='%s (%s)' % (g['sitename'], g['lang']),
-            #url=g['base'],
-            #language=g['lang'],
-            #base_url=self.nfo['base_url'],
-            #script_extension=self.nfo['script_extension'],
-      #)
       self.append("[%s](%s)" % (node.target, target))
 
   def on_namespacelink(self, node):
