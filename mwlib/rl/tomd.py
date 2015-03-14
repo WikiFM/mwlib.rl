@@ -18,6 +18,8 @@ from mwlib.uparser import simpleparse
 from mwlib.parser import nodes
 from mwlib import nuwiki
 
+import shutil
+import os
 
 class options:
   # Should we drop to the debugger on error
@@ -84,12 +86,15 @@ class BaseConverter(object):
       tagname = 'on_'+str(node.tagname).replace('@', '')
       classname = 'on_'+node.__class__.__name__.lower().replace('@', '')
       f = getattr(self, tagname, getattr(self, classname, None))
-      #if classname != "":
-      #print classname
+      if classname == "":
+        print classname
+        #print classname
       f(node)
     except AttributeError, e:
       sys.stderr.write('Unknown node: '+(node.tagname or node.__class__.__name__.lower()))
       assert not options.STRICT
+    except TypeError:
+      sys.stderr.write('No Type?')
 
   def parse_children(self, node):
     for child in node.children:
@@ -160,7 +165,7 @@ class BaseConverter(object):
     return
 
   def on_table(self, node):
-    table_cell_parser = self.__class__(self.item_wiki)
+    table_cell_parser = self.__class__(self.item_wiki, self.image_path)
 
     table = []
     table_caption = ""
@@ -193,12 +198,15 @@ class BaseConverter(object):
         args['celltype'] = row.children[-1]
       if len(cells):
         args['cells'] = cells
-      table.append(args)
+        table.append(args)
 
     for row in table:
-      while len(row['cells']) < table_width:
-        row['cells'].append({'rendered': ''})
-
+      try:
+        row['cells']
+        while len(row['cells']) < table_width:
+            row['cells'].append({'rendered': ''})
+      except KeyError:
+          continue
     self.on_process_table(table_caption, table_column_widths, table)
 
 
@@ -281,21 +289,22 @@ class HTMLConverter(BaseConverter):
 
   def on_section(self, node):
     self.append("\n")
-    self.append("<h%i>" % node.level)
+    self.append("<h%i>" % node.level-1)
     self.parse_node(node.children[0])
-    self.append("</h%i>" %node.level)
+    self.append("</h%i>" %node.level-1)
     for child in node.children[1:]:
       self.parse_node(child)
 
 
 class MarkdownConverter(BaseConverter):
 
-  def __init__(self, item_wiki):
+  def __init__(self, item_wiki, image_path):
     BaseConverter.__init__(self)
     self.html = HTMLConverter()
     self.footnote_counter = 0
     self.footnote_dict = {}
     self.item_wiki = item_wiki
+    self.image_path = image_path
 
   def parse(self, text):
     sys_stdout = sys.stdout
@@ -306,7 +315,7 @@ class MarkdownConverter(BaseConverter):
     self.parse_node(ast)
 
   def on_blockquote(self, node):
-    parser = MarkdownConverter(self.item_wiki)
+    parser = MarkdownConverter(self.item_wiki, self.image_path)
     parser.parse_children(node)
     output = parser.getvalue()
 
@@ -319,7 +328,7 @@ class MarkdownConverter(BaseConverter):
     self.append("\n".join(lines))
 
   def on_preformatted(self, node):
-    parser = MarkdownConverter(self.item_wiki)
+    parser = MarkdownConverter(self.item_wiki, self.image_path)
     parser.parse_children(node)
     output = parser.getvalue()
 
@@ -338,9 +347,15 @@ class MarkdownConverter(BaseConverter):
     self.append('<pre>%s</pre>\n' % output)
 
   def on_code(self, node):
-    self.append('`')
+    try:
+      lang = node.vlist['lang']
+      self.append('```%s' % lang)
+    except:
+      self.append('```')
     self.parse_children(node)
-    self.append('`')
+    self.append('```')
+
+  on_source = on_code
 
   def on_tt(self, node):
     self.append('<tt>')
@@ -390,7 +405,7 @@ class MarkdownConverter(BaseConverter):
       self.append('\n')
 
   def on_url(self, node):
-    parser = MarkdownConverter(self.item_wiki)
+    parser = MarkdownConverter(self.item_wiki, self.image_path)
     parser.parse_children(node)
     output = parser.getvalue().strip()
 
@@ -403,11 +418,25 @@ class MarkdownConverter(BaseConverter):
 
   on_namedurl = on_url
 
-  def on_imagelink(self, node):
-    self.append('![%s](%s)' % (
-        node.asText(), node.target.replace('Image:', '').replace(' ', '_').replace('File:', '')))
-    print self.item_wiki.getDiskPath(node.target)
+  def get_text(self, node):
+    parser = MarkdownConverter(self.item_wiki, self.image_path)
+    parser.parse_children(node)
+    output = parser.getvalue()
+    return output
 
+  def image_caption_process(self, caption):
+      caption = caption.replace('_', '\_')
+
+  def on_imagelink(self, node):
+    target = node.target.replace('Image:', '').replace(' ', '_').replace('File:', '')
+    label = self.get_text(node)
+    path = self.item_wiki.getDiskPath(node.target)
+    self.append('\\begin{figure}\n\\image{%s}\n' % path)
+    #if (len(label)):
+        #self.append('\\caption{%s}' % label.replace('_', '\_'))
+    self.append('\\end{figure}')
+    #self.append('![%s\label{fig:foo}](%s)' % (label, path))
+    
   def on_articlelink(self, node):
     for i in ['jpg', 'png', 'gif']:
       if node.target.endswith(i):
@@ -465,7 +494,7 @@ class MarkdownConverter(BaseConverter):
         children.append(child)
     node.children = children
 
-    parser = MarkdownConverter(self.item_wiki)
+    parser = MarkdownConverter(self.item_wiki, self.image_path)
     parser.parse_children(node)
     output = parser.getvalue()
 
@@ -492,15 +521,18 @@ class MarkdownConverter(BaseConverter):
     self.append("\n".join(lines))
     
   def on_ref(self, node):
-    parser = MarkdownConverter(self.item_wiki)
+    parser = MarkdownConverter(self.item_wiki, self.image_path)
     parser.parse_children(node)
+    #print node.asText()
     output = parser.out
+    #print output
     if (len(output)):
       self.append('[^footnote-%d]' % self.footnote_counter)
       self.footnote_dict[self.footnote_counter] = output
       self.footnote_counter += 1
 
   def add_footnotes(self):
+    self.append('\n\n')
     for key in self.footnote_dict:
       content = self.footnote_dict[key]
       self.append('[^footnote-%d]: %s\n' % (key, content))
@@ -511,13 +543,18 @@ class MarkdownConverter(BaseConverter):
     elif node.caption == 'br':
       self.append('<br>')
     elif node.caption == 'div' or node.caption == 'span':
-      return
+      self.parse_children(node)
+      #return
     #elif node.caption == 'ref':
         # FIXME handle ref
       #return
     else:
       sys.stderr.write( "Unknown tag %s %s\n" % (node, node.caption))
       assert not options.STRICT
+
+  def on_math(self, node):
+    #print node.asText()
+    self.append('\( %s \)' % node.asText())
 
   def on_process_table(self, caption, widths, rows):
     if caption:
@@ -588,7 +625,7 @@ def main(argv):
   mediawiki = infile.read()
 
   try:
-    c = MarkdownConverter(self.item_wiki)
+    c = MarkdownConverter(self.item_wiki, self.image_path)
     c.parse(mediawiki)
     print c.out
   except:

@@ -56,16 +56,20 @@ class ScWriter():
         if (single_chapter):
             for item in self.env.metabook.walk("article"):
                 title = item.displaytitle or item.title
+                title = title.replace('/','-')
+                title = title.replace(' ','_')
+                title = title.replace(':','-')
                 log.info("Writing article content in file %s" % title)
                 
                 #print self.env.metabook.wikis[0].baseurl #get_wiki().baseurl
                 #print item.wiki.baseurl
-                c = MarkdownConverter(item.wiki)
+                c = MarkdownConverter(item.wiki, os.path.join(self.bookdir, 'images'))
                 
                 mywiki = item.wiki
                 art = mywiki.getParsedArticle(title=item.title,
                                              revision=item.revision)
                 c.parse_node(art)
+                #print art
                 c.add_footnotes()
                 self.chapters.append('%s.md' % title)
                 fi = os.path.join(self.chapters_path, '%s.md' % title)

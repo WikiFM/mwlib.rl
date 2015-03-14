@@ -329,6 +329,7 @@ include mwlib/rl/rlsourceformatter.py
 include mwlib/rl/rltables.py
 include mwlib/rl/rlwriter.py
 include mwlib/rl/toc.py
+include mwlib/rl/tomd.py
 include mwlib/rl/wikipedia_logo.png
 include mwlib/sc/scwriter.py
 include mwlib/sc/tomd.py
