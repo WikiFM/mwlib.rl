@@ -325,12 +325,22 @@ class MarkdownConverter(BaseConverter):
         lines.append("> "*len(node.caption)+line)
       else:
         lines.append(line)
+        
+    self.append("\n")
     self.append("\n".join(lines))
+    self.append("\n")
 
   def on_preformatted(self, node):
     parser = MarkdownConverter(self.item_wiki, self.image_path)
     parser.parse_children(node)
     output = parser.getvalue()
+
+    self.append('```\n')
+    self.append(output)
+    self.append('```\n')
+    #else:
+      #self.append('\\texttt{%s}' % output)
+    return
 
     lines = []
     for line in output.split('\n'):
@@ -338,8 +348,10 @@ class MarkdownConverter(BaseConverter):
         lines.append("    "+line)
       else:
         lines.append(line)
+    #self.append('```')
     self.append("\n".join(lines))
-
+    #self.append('```')
+    
   def on_pre(self, node):
     parser = HTMLConverter()
     parser.parse_children(node)
@@ -347,13 +359,19 @@ class MarkdownConverter(BaseConverter):
     self.append('<pre>%s</pre>\n' % output)
 
   def on_code(self, node):
+    text = self.get_text(node)
+    if (len(text.split('\n')) == 1):
+      text = text.replace('\\','\\\\')
+      text = text.replace('{','\\{')
+      #text = text.replace('}','\\}')
+      return self.append('\\texttt{%s}' % text)
     try:
       lang = node.vlist['lang']
       self.append('```%s' % lang)
     except:
       self.append('```')
     self.parse_children(node)
-    self.append('```')
+    self.append('``` ')
 
   on_source = on_code
 
@@ -541,8 +559,10 @@ class MarkdownConverter(BaseConverter):
     if node.caption == 'hr':
       self.append('-'*75+'\n')
     elif node.caption == 'br':
-      self.append('<br>')
+      self.append('\n\n')
     elif node.caption == 'div' or node.caption == 'span':
+      self.parse_children(node)
+    elif node.caption == 'big':
       self.parse_children(node)
       #return
     #elif node.caption == 'ref':
@@ -554,7 +574,7 @@ class MarkdownConverter(BaseConverter):
 
   def on_math(self, node):
     #print node.asText()
-    self.append('\( %s \)' % node.asText())
+    self.append(' \( %s \) ' % node.asText())
 
   def on_process_table(self, caption, widths, rows):
     if caption:

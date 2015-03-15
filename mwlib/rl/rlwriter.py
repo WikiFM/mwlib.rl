@@ -19,6 +19,7 @@ import sys
 import os
 import tempfile
 import shutil
+import re
 
 from mwlib.log import Log
 from mwlib import advtree, writerbase, odfconf, parser
@@ -71,9 +72,17 @@ class ScWriter():
                 c.parse_node(art)
                 #print art
                 c.add_footnotes()
+                cout = c.out
+                # Fix Math
+                #cout = re.sub(r'\$\$\s?([^\$\$]+)\s?\$\$',r'\[ \1 \]', cout)
+                #cout = re.sub(r'\$\$(.*?)\$\$',r'\[ \1 \]', cout)
+                cout = re.sub(r'(?s)(?<!\\)\$\$(.*?)(?<!\\)\$\$',r'\[ \1 \]',cout)
+                #print cout
+                
+                # Write content of the chapter to a file
                 self.chapters.append('%s.md' % title)
                 fi = os.path.join(self.chapters_path, '%s.md' % title)
-                open(fi, 'w').write(c.out)
+                open(fi, 'w').write(cout)
         
         #booktxt = "cover\nfrontmatter:\nmaketitle\ntableofcontents\npreface.md\nmainmatter:\n%s" % '\n'.join(self.chapters)
         booktxt = "frontmatter:\nmaketitle\ntableofcontents\nmainmatter:\n%s" % '\n'.join(self.chapters)
