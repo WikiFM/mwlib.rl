@@ -449,7 +449,7 @@ class MarkdownConverter(BaseConverter):
     target = node.target.replace('Image:', '').replace(' ', '_').replace('File:', '')
     label = self.get_text(node)
     path = self.item_wiki.getDiskPath(node.target)
-    self.append('\\begin{figure}\n\\image{%s}\n' % path)
+    self.append('\\begin{figure}[H]\n\\image{%s}\n' % path)
     #if (len(label)):
         #self.append('\\caption{%s}' % label.replace('_', '\_'))
     self.append('\\end{figure}')
@@ -581,13 +581,13 @@ class MarkdownConverter(BaseConverter):
       self.append('### %s ###\n' % caption)
 
     # Insert a dummy header if one doesn't exist
-    if rows[0]['celltype'].tagname != 'th':
-      fakenode = nodes.Node()
-      fakenode.tagname = 'th'
-      fakenode.vlist = {}
-      rows.insert(0, {'rowtype': rows[0]['rowtype'],
-                      'celltype': fakenode,
-                      'cells': [{'node': fakenode, 'rendered': ''}]*len(widths)})
+    #if rows[0]['celltype'].tagname != 'th':
+      #fakenode = nodes.Node()
+      #fakenode.tagname = 'th'
+      #fakenode.vlist = {}
+      #rows.insert(0, {'rowtype': rows[0]['rowtype'],
+                      #'celltype': fakenode,
+                      #'cells': [{'node': fakenode, 'rendered': ''}]*len(widths)})
 
     header = rows[0]
     for row in rows:
@@ -623,6 +623,10 @@ class MarkdownConverter(BaseConverter):
 
       self.append(line[:-2])
       self.append('\n')
+      if row != rows[-1]:
+        self.append(divider[:-2])
+        self.append('\n')
+      
 
       if row['celltype'].tagname == 'th':
         self.append(divider[:-2])

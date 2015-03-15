@@ -73,12 +73,16 @@ class ScWriter():
                 #print art
                 c.add_footnotes()
                 cout = c.out
-                # Fix Math
-                #cout = re.sub(r'\$\$\s?([^\$\$]+)\s?\$\$',r'\[ \1 \]', cout)
-                #cout = re.sub(r'\$\$(.*?)\$\$',r'\[ \1 \]', cout)
+                # Fix Math $$ ... $$ -> \[ .. \]
                 cout = re.sub(r'(?s)(?<!\\)\$\$(.*?)(?<!\\)\$\$',r'\[ \1 \]',cout)
-                #print cout
                 
+                #prepend title if the page doesn't have it
+                a = re.compile("\n#([^#]+?)#")
+                if (not a.search(cout)):
+                    t = (item.displaytitle or item.title)
+                    t = t.split('/')[-1]
+                    cout = "\n# %s #\n%s" % (t, cout)
+                    
                 # Write content of the chapter to a file
                 self.chapters.append('%s.md' % title)
                 fi = os.path.join(self.chapters_path, '%s.md' % title)
