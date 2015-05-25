@@ -38,8 +38,8 @@ class ScWriter():
         
     def write(self, output):
         
-        #self.tmpdir = tempfile.mkdtemp()
-        self.tmpdir = '/tmp/tester'
+        self.tmpdir = tempfile.mkdtemp()
+        #self.tmpdir = '/tmp/tester'
         self.bookdir = os.path.join(self.tmpdir, 'book')
         self.chapters_path = os.path.join(self.bookdir, 'chapters')
         
